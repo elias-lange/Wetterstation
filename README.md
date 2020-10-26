@@ -27,3 +27,6 @@ Wenn sich der Magnet über dem Neigungssensor bewegt, so löst dieser aus und we
 
 ![Windrad von der Seite](doc/Windrad.jpg)
 
+## Code
+
+Das Programm habe ich mit der Arduino-IDE erstellt. Es findet sich unter [wetterstation/wetterstation.ino](wetterstation/wetterstation.ino).
