@@ -17,9 +17,13 @@ Auf dem folgenden Foto sieht man den Temperatursensor, den USB-Anschluss und wie
 
 ![Platine der Wetterstation](doc/Box_offen.jpg)
 
+Hier auch eine Zeichnung der Schaltung:
+
+![Schaltung](doc/Schaltung.png)
+
 ## Messung der Windstärke
 
-Für die Messung der Windstärke habe ich ein Windrad aus Holz gebastelt. Die Schalen für den Wind sind Ü-Ei-Becher. Die Windstärke wird in Umdrehungen pro Minute angezeigt. Um eine Umdrehung zu messen, ist im Halter des Windrads ein Neigungssensor um im Rotor ein Magnet.
+Für die Messung der Windstärke habe ich ein Windrad aus Holz gebastelt. Die Schalen für den Wind sind Ü-Ei-Becher. Die Windstärke wird in Umdrehungen pro Minute angezeigt. Um eine Umdrehung zu messen, ist im Halter des Windrads ein Neigungssensor und im Rotor ein Magnet.
 
 ![Magnet im Windrad](doc/Magnet_im_Windrad.jpg)
 
