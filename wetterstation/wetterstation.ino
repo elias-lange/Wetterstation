@@ -115,6 +115,7 @@ bool sendMeasurementToThingSpeak() {
   } else {
     showStatusMessage("Keine Verbindung zu " + String(WIFI_SSID) + ".");
   }
+  delay(1000); // Gibt etwas Zeit für die Statusanzeige.
   client.stop();
   return success;
 }
@@ -165,7 +166,7 @@ void loop () {
     }
   } else if (millis() > nextUpdateMeasurementsTime_ms) {
     updateMeasurements();
-    nextUpdateMeasurementsTime_ms = millis() + 10 * 1000;
+    nextUpdateMeasurementsTime_ms = millis() + 60 * 1000;
   } else if (millis() > nextRedrawScreenTime_ms) {
     redrawScreen();
     nextRedrawScreenTime_ms = millis() + 33;
