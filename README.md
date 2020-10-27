@@ -25,7 +25,7 @@ Für die Messung der Windstärke habe ich ein Windrad aus Holz gebastelt. Die Sc
 
 Wenn sich der Magnet über dem Neigungssensor bewegt, so löst dieser aus und wenn er sich weiterbewegt dann noch einmal.
 
-![Windrad von der Seite](doc/Windrad.jpg)
+![Windrad von der Seite](doc/Windrad.gif)
 
 ## Code
 
