@@ -1,3 +1,6 @@
+[![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://github.com/elias-lange/wetterstation/blob/main/LICENSE)
+[![Build](https://github.com/elias-lange/Wetterstation/workflows/Build/badge.svg)](https://github.com/elias-lange/Wetterstation/actions)
+
 # Wetterstation
 
 Für Geo habe ich eine Wetterstation gebastelt. Diese misst Temperatur und Windgeschwindigkeit, zeigt die Werte auf einem Display an und überträgt sie auch zu ThingSpeak.
