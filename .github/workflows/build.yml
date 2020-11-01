@@ -17,6 +17,6 @@ jobs:
     - name: Compile all examples
       uses: ArminJo/arduino-test-compile@v2
       with:
-        arduino-board-fqbn: esp32:esp32:ttgo-lora32-v1
+        arduino-board-fqbn: esp32:esp32:esp32
         platform-url: https://dl.espressif.com/dl/package_esp32_index.json
         required-libraries: DallasTemperature,OneWire,U8g2,Adafruit Unified Sensor,Adafruit BMP280 Library
