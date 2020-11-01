@@ -3,23 +3,29 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <U8g2lib.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_BMP280.h>
 
 const char* WIFI_SSID = "Hier WLAN-SSID eintragen";
 const char* WIFI_PASSWORD = "Hier WLAN-Passwort eintragen";
 const char* THING_SPEAK_API_KEY = "Hier API-Key für ThingSpeak eintragen";
 
-U8G2_SH1106_128X64_NONAME_F_SW_I2C display(U8G2_R0, 15, 18);
+U8G2_SH1106_128X64_NONAME_F_SW_I2C display(U8G2_R0, 5, 17);
 
 volatile int magnetEventCount = 0;
 volatile unsigned long timeOfLastMagnetEvent_ms = 0;
 float temperature_C = 0.0;
 float windSpeed_rpm = 0.0;
+float pressure_hPa = 0.0;
 
 String statusMessage = "";
 unsigned long statusMessageTime_ms = 0;
 
-OneWire oneWire(19); 
+OneWire oneWire(32); 
 DallasTemperature sensors(&oneWire);
+
+Adafruit_BMP280 pressureSensor(15, 13, 12, 14); // An Hardware-SPI des ESP32.
 
 
 // Diese Funktion ist ein Interrupt-Handler. Sie wird jedes Mal aufgerufen,
@@ -38,20 +44,28 @@ void IRAM_ATTR onMagnetEvent() {
 
 
 void setup() {
+  pinMode(19, OUTPUT);
+  digitalWrite(19, HIGH);
+  pinMode(18, OUTPUT);
+  digitalWrite(18, LOW);
   display.begin();
 
   // Initialisierung für Temperatursensor.
   sensors.begin();
 
   // Pin für Neigungssensor im Windrad.
-  pinMode(16, INPUT);
+  pinMode(16, OUTPUT);
+  digitalWrite(16, HIGH);
+  pinMode(4, INPUT);
 
   // Da Schaltung 'prellt' unbedingt CHANGE und nicht nur RISING oder FALLING
   // verwenden! Wenn nur RISING oder FALLING verwendet würde, so würde bei
   // Prellen sowieso wie CHANGE gezählt, bei Nicht-Prellen aber nur RISING
   // bzw. FALLING und damit inkonsistent.
   // Details: https://de.wikipedia.org/wiki/Prellen
-  attachInterrupt(digitalPinToInterrupt(16), onMagnetEvent, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(4), onMagnetEvent, CHANGE);
+
+  pressureSensor.begin();
 }
 
 
@@ -79,6 +93,9 @@ void updateMeasurements() {
   windSpeed_rpm = 60.0 * 1000.0 * (magnetEventCount / 2.0) / (millis() - lastUpdateMeasurements_ms);
   magnetEventCount = 0;
 
+  pressure_hPa = (float)pressureSensor.readPressure() / 100.0; // Konvertierung von Pascal zu hPa.
+  pressure_hPa = pressure_hPa / 0.938; // Luftdruck auf Meereshöhe statt 500m.
+
   lastUpdateMeasurements_ms = millis();
 
   showStatusMessage("Messung aktualisiert.");
@@ -90,7 +107,7 @@ void updateMeasurements() {
 // 'true' zurückgegeben, sonst 'false'.
 bool sendMeasurementToThingSpeak() {
   // Nachricht an ThingSpeak zusammensetzen.
-  String url = String("https://api.thingspeak.com/update?api_key=") + String(THING_SPEAK_API_KEY) + String("&field1=") + String(temperature_C) + String("&field2=") + String(windSpeed_rpm);
+  String url = String("https://api.thingspeak.com/update?api_key=") + String(THING_SPEAK_API_KEY) + String("&field1=") + String(temperature_C) + String("&field2=") + String(windSpeed_rpm) + String("&field3=") + String(pressure_hPa);
 
   // Verbinde mit WLAN.
   boolean success = false;
@@ -125,20 +142,21 @@ bool sendMeasurementToThingSpeak() {
 void redrawScreen() {
   display.clearBuffer();
   display.setFont(u8g_font_helvB10);
-  display.drawStr(0, 20, ("Temp: " + String(temperature_C, 1) + " C").c_str());
-  display.drawStr(0, 40, ("Wind: " + String(windSpeed_rpm, 1) + " U/min").c_str());
+  display.drawStr(0, 13, ("Temp: " + String(temperature_C, 1) + " C").c_str());
+  display.drawStr(0, 30, ("Wind: " + String(windSpeed_rpm, 1) + " U/min").c_str());
+  display.drawStr(0, 47, ("Druck: " + String(pressure_hPa, 1) + " hPa").c_str());
 
   // Wenn Magnetsensor im Windrad kürzlich ausgelöst hat, so male einen
   // kleinen Kreis in die rechte obere Ecke.
   if (millis() < timeOfLastMagnetEvent_ms + 250) {
-    display.drawDisc(120, 8, 4);
+    display.drawDisc(123, 5, 4);
   }
 
   // Wenn die Statusnachricht kürzlich neu gesetzt wurde,
   // so schreibe sie in die unterste Zeile.
   if (millis() < statusMessageTime_ms + 1000) {
     display.setFont(u8g_font_helvR08);
-    display.drawStr(0, 60, statusMessage.c_str());
+    display.drawStr(0, 62, statusMessage.c_str());
   }
 
   display.sendBuffer();
@@ -157,7 +175,7 @@ void loop () {
   } else if (millis() > nextSendMeasurementToThingSpeakTime_ms) {
     bool success = sendMeasurementToThingSpeak();
     if (success) {
-      nextSendMeasurementToThingSpeakTime_ms = millis() + 15 * 60 * 1000;
+      nextSendMeasurementToThingSpeakTime_ms = millis() + 2 * 60 * 1000;
     } else {
       // Wenn Senden nicht erfolgreich, dann neuer Versuch nicht sofort, sondern
       // nach 10 Sekunden, damit zwischendurch andere Funktionen ausgeführt werden

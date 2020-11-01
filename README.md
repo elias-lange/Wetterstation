@@ -1,6 +1,6 @@
 # Wetterstation
 
-Für Geo habe ich eine Wetterstation gebastelt. Diese misst Temperatur und Windgeschwindigkeit, zeigt die Werte auf einem Display an und überträgt sie auch zu ThingSpeak.
+Für Geo habe ich eine Wetterstation gebastelt. Diese misst Temperatur, Windgeschwindigkeit und Luftdruck, zeigt die Werte auf einem Display an und überträgt sie auch zu ThingSpeak.
 
 ![Box der Wetterstation in Betrieb](doc/Box_in_Betrieb.jpg)
 
@@ -8,16 +8,17 @@ Für Geo habe ich eine Wetterstation gebastelt. Diese misst Temperatur und Windg
 
 Folgende Komponenten wurden verwendet:
 
-* Mikrocontroller: ESP32 (hier ein TTGO LoRa32 SX1276 OLED Board mit defektem Display)
+* Mikrocontroller: ESP32 NodeMCU
 * Display: 1,3 Zoll OLED 128×64 mit SH1106 Chip
 * Temperatursensor: DS18B20 (wasserdicht)
 * Neigungssensor: SW-520D (hier als Reedkontakt verwendet)
+* Luftdrucksensor: BMP280
 
-Auf dem folgenden Foto sieht man den Temperatursensor, den USB-Anschluss und wie es unter dem Display aussieht. An der Seite sind zwei Buchsen, an die das Windrad (siehe unten) angeschlossen wird.
+Auf dem folgenden Foto sieht man den Temperatursensor, den USB-Anschluss, die kleine senkrechte Platine mit dem Luftdrucksensor und wie es unter dem Display aussieht. An der Seite sind zwei Buchsen, an die das Windrad (siehe unten) angeschlossen wird.
 
 ![Platine der Wetterstation](doc/Box_offen.jpg)
 
-Hier auch eine Zeichnung der Schaltung:
+Hier auch eine Zeichnung der Schaltung (hier noch ohne Luftdrucksensor):
 
 ![Schaltung](doc/Schaltung.png)
 
