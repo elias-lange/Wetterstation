@@ -21,7 +21,7 @@ Auf dem folgenden Foto sieht man den Temperatursensor, den USB-Anschluss, die kl
 
 ![Platine der Wetterstation](doc/Box_offen.jpg)
 
-Hier auch eine Zeichnung der Schaltung (hier noch ohne Luftdrucksensor):
+Hier auch eine Zeichnung der Schaltung:
 
 ![Schaltung](doc/Schaltung.png)
 
