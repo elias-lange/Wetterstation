@@ -1,4 +1,4 @@
-[![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://github.com/elias-lange/wetterstation/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE)
 [![Build](https://github.com/elias-lange/Wetterstation/workflows/Build/badge.svg)](https://github.com/elias-lange/Wetterstation/actions)
 
 # Wetterstation
