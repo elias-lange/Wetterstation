@@ -1,6 +1,8 @@
 [![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE)
 [![Build](https://github.com/elias-lange/Wetterstation/workflows/Build/badge.svg)](https://github.com/elias-lange/Wetterstation/actions)
 
+Die Implementierung in diesem Branch verwendet die [Tiny-Sensor-Toolbox](https://github.com/elias-lange/tiny-sensor-toolbox/).
+
 # Wetterstation
 
 Für Geo habe ich eine Wetterstation gebastelt. Diese misst Temperatur, Windgeschwindigkeit und Luftdruck, zeigt die Werte auf einem Display an und überträgt sie auch zu ThingSpeak.

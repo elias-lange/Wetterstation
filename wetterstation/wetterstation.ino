@@ -1,7 +1,4 @@
-#include <OneWire.h> 
-#include <DallasTemperature.h>
-#include <WiFi.h>
-#include <HTTPClient.h>
+#include <tiny-sensor-toolbox.h>
 #include <U8g2lib.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -10,11 +7,10 @@
 const char* WIFI_SSID = "Hier WLAN-SSID eintragen";
 const char* WIFI_PASSWORD = "Hier WLAN-Passwort eintragen";
 const char* THING_SPEAK_API_KEY = "Hier API-Key für ThingSpeak eintragen";
+ThingSpeakSender sender(WIFI_SSID, WIFI_PASSWORD, THING_SPEAK_API_KEY);
 
 U8G2_SH1106_128X64_NONAME_F_SW_I2C display(U8G2_R0, 5, 17);
 
-volatile int magnetEventCount = 0;
-volatile unsigned long timeOfLastMagnetEvent_ms = 0;
 float temperature_C = 0.0;
 float windSpeed_rpm = 0.0;
 float pressure_hPa = 0.0;
@@ -22,25 +18,9 @@ float pressure_hPa = 0.0;
 String statusMessage = "";
 unsigned long statusMessageTime_ms = 0;
 
-OneWire oneWire(32); 
-DallasTemperature sensors(&oneWire);
-
+DS18B20Sensor temperatureSensor(32);
+SignalEdgeSensor windSensor(4, 10.0);
 Adafruit_BMP280 pressureSensor(15, 13, 12, 14); // An Hardware-SPI des ESP32.
-
-
-// Diese Funktion ist ein Interrupt-Handler. Sie wird jedes Mal aufgerufen,
-// wenn der Neigungssensor im Windrad auslöst, das heißt seinen Zustand
-// ändert. Bei jeder Umdrehung wird der Interrupt zwei Mal ausgelöst.
-// Tatsächlich löst der Interrupt noch öfters aus, weil die Schaltung
-// 'prellt' (https://de.wikipedia.org/wiki/Prellen). Deswegen werden
-// mehrere Auslösungen innerhalb von 10ms ignoriert.
-void IRAM_ATTR onMagnetEvent() {
-  const unsigned long MAGNET_EVENT_DEBOUNCE_MS = 10;
-  if (millis() > timeOfLastMagnetEvent_ms + MAGNET_EVENT_DEBOUNCE_MS) {
-    magnetEventCount++;
-    timeOfLastMagnetEvent_ms = millis();
-  }
-}
 
 
 void setup() {
@@ -51,19 +31,12 @@ void setup() {
   display.begin();
 
   // Initialisierung für Temperatursensor.
-  sensors.begin();
+  temperatureSensor.setup();
 
   // Pin für Neigungssensor im Windrad.
   pinMode(16, OUTPUT);
   digitalWrite(16, HIGH);
-  pinMode(4, INPUT);
-
-  // Da Schaltung 'prellt' unbedingt CHANGE und nicht nur RISING oder FALLING
-  // verwenden! Wenn nur RISING oder FALLING verwendet würde, so würde bei
-  // Prellen sowieso wie CHANGE gezählt, bei Nicht-Prellen aber nur RISING
-  // bzw. FALLING und damit inkonsistent.
-  // Details: https://de.wikipedia.org/wiki/Prellen
-  attachInterrupt(digitalPinToInterrupt(4), onMagnetEvent, CHANGE);
+  windSensor.setup();
 
   pressureSensor.begin();
 }
@@ -81,60 +54,22 @@ void showStatusMessage(T msg) {
 // Liest die Messwerte für Temperatur und Windgeschwindigkeit
 // von den Sensoren.
 void updateMeasurements() {
-  static unsigned long lastUpdateMeasurements_ms = 0;
-
   showStatusMessage("Aktualisiere Messung ...");
-  
+
   // Lies Temperatur aus.
-  sensors.requestTemperatures(); 
-  temperature_C = sensors.getTempCByIndex(0);
+  temperatureSensor.loop();
+  if (temperatureSensor.getData() > -100.0f) {
+    temperature_C = temperatureSensor.getData();
+  }
 
   // Berechne Umdrehungen pro Minute.
-  windSpeed_rpm = 60.0 * 1000.0 * (magnetEventCount / 2.0) / (millis() - lastUpdateMeasurements_ms);
-  magnetEventCount = 0;
+  windSensor.loop();
+  windSpeed_rpm = windSensor.getData() * 60.0f;
 
   pressure_hPa = (float)pressureSensor.readPressure() / 100.0; // Konvertierung von Pascal zu hPa.
   pressure_hPa = pressure_hPa / 0.938; // Luftdruck auf Meereshöhe statt 500m.
 
-  lastUpdateMeasurements_ms = millis();
-
   showStatusMessage("Messung aktualisiert.");
-}
-
-
-// Diese Funktion verbindet sich mit dem WLAN und sendet dann
-// eine Messung an ThingSpeak. Wenn alles geklappt hat, so wird
-// 'true' zurückgegeben, sonst 'false'.
-bool sendMeasurementToThingSpeak() {
-  // Nachricht an ThingSpeak zusammensetzen.
-  String url = String("https://api.thingspeak.com/update?api_key=") + String(THING_SPEAK_API_KEY) + String("&field1=") + String(temperature_C) + String("&field2=") + String(windSpeed_rpm) + String("&field3=") + String(pressure_hPa);
-
-  // Verbinde mit WLAN.
-  boolean success = false;
-  WiFiClient client;
-  WiFi.mode(WIFI_STA);
-  showStatusMessage("Verbinde zu " + String(WIFI_SSID) + " ...");
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  delay(5000); // Warte einige Sekunden bis Verbindung aufgebaut.
-
-  if (WiFi.status() == WL_CONNECTED) {
-    showStatusMessage("Sende zu ThingSpeak ...");
-    HTTPClient http;
-    http.begin(url.c_str());
-    int response = http.GET();
-    if (response == 200) {
-      success = true;
-      showStatusMessage("An ThingSpeak versandt.");
-    } else {
-      showStatusMessage("HTTP Error: " + String(response) + ".");
-    }
-    http.end();
-  } else {
-    showStatusMessage("Keine Verbindung zu " + String(WIFI_SSID) + ".");
-  }
-  delay(1000); // Gibt etwas Zeit für die Statusanzeige.
-  client.stop();
-  return success;
 }
 
 
@@ -148,7 +83,7 @@ void redrawScreen() {
 
   // Wenn Magnetsensor im Windrad kürzlich ausgelöst hat, so male einen
   // kleinen Kreis in die rechte obere Ecke.
-  if (millis() < timeOfLastMagnetEvent_ms + 250) {
+  if (millis() < windSensor.getTimeOfLastSignalEdge() + 250) {
     display.drawDisc(123, 5, 4);
   }
 
@@ -164,7 +99,7 @@ void redrawScreen() {
 
 
 void loop () {
-  static unsigned long nextEspRestartTime_ms = 3 * 60 * 60 * 1000;
+  static unsigned long nextEspRestartTime_ms = 30 * 60 * 1000;
   static unsigned long nextSendMeasurementToThingSpeakTime_ms = 15000;
   static unsigned long nextUpdateMeasurementsTime_ms = 1000;
   static unsigned long nextRedrawScreenTime_ms = 1500;
@@ -173,10 +108,13 @@ void loop () {
     ESP.restart();
     // Das Programm hört hier auf.
   } else if (millis() > nextSendMeasurementToThingSpeakTime_ms) {
-    bool success = sendMeasurementToThingSpeak();
+    showStatusMessage("Sende zu ThingSpeak ...");
+    bool success = sender.sendMeasurement(String(temperature_C), String(windSpeed_rpm));
     if (success) {
-      nextSendMeasurementToThingSpeakTime_ms = millis() + 2 * 60 * 1000;
+      showStatusMessage("An ThingSpeak versandt.");
+      nextSendMeasurementToThingSpeakTime_ms = millis() + 20 * 1000;
     } else {
+      showStatusMessage("Keine Verbindung zu ThingSpeak.");
       // Wenn Senden nicht erfolgreich, dann neuer Versuch nicht sofort, sondern
       // nach 10 Sekunden, damit zwischendurch andere Funktionen ausgeführt werden
       // können.
@@ -184,7 +122,7 @@ void loop () {
     }
   } else if (millis() > nextUpdateMeasurementsTime_ms) {
     updateMeasurements();
-    nextUpdateMeasurementsTime_ms = millis() + 60 * 1000;
+    nextUpdateMeasurementsTime_ms = millis() + 10 * 1000;
   } else if (millis() > nextRedrawScreenTime_ms) {
     redrawScreen();
     nextRedrawScreenTime_ms = millis() + 33;
