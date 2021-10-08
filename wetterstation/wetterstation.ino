@@ -4,6 +4,8 @@
 #include <SPI.h>
 #include <Adafruit_BMP280.h>
 
+SerialLogger logger;
+
 const char* WIFI_SSID = "Hier WLAN-SSID eintragen";
 const char* WIFI_PASSWORD = "Hier WLAN-Passwort eintragen";
 const char* THING_SPEAK_API_KEY = "Hier API-Key für ThingSpeak eintragen";
@@ -24,6 +26,9 @@ Adafruit_BMP280 pressureSensor(15, 13, 12, 14); // An Hardware-SPI des ESP32.
 
 
 void setup() {
+  logger.init(9600);
+  SET_GLOBAL_LOGGER(&logger);
+
   pinMode(19, OUTPUT);
   digitalWrite(19, HIGH);
   pinMode(18, OUTPUT);
@@ -109,7 +114,7 @@ void loop () {
     // Das Programm hört hier auf.
   } else if (millis() > nextSendMeasurementToThingSpeakTime_ms) {
     showStatusMessage("Sende zu ThingSpeak ...");
-    bool success = sender.sendMeasurement(String(temperature_C), String(windSpeed_rpm));
+    bool success = sender.sendMeasurement(String(temperature_C), String(windSpeed_rpm), String(pressure_hPa));
     if (success) {
       showStatusMessage("An ThingSpeak versandt.");
       nextSendMeasurementToThingSpeakTime_ms = millis() + 20 * 1000;
